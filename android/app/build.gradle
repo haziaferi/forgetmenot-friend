@@ -1,0 +1,171 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
+apply plugin: 'org.jetbrains.kotlin.plugin.serialization'
+apply plugin: 'io.github.takahirom.roborazzi'
+
+android {
+    namespace = "com.hazia.forgetmenot"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "com.hazia.forgetmenot"
+        minSdk = 30
+        targetSdk = 36
+        versionCode = 1
+        versionName = "1.0.0"
+    }
+
+    testOptions {
+        // JVM unit tests (src/test) never touch the device; Android stubs return defaults
+        // instead of throwing, so a stray Log call in shared code doesn't fail a pure test.
+        unitTests.returnDefaultValues = true
+        // Robolectric screenshot tests (ui/theme) render with the app's real fonts and resources.
+        unitTests.includeAndroidResources = true
+    }
+
+    // JDK floor: compileOptions targets 21 and AGP 8.13 only enforces 17, so a 17-20 daemon
+    // would otherwise fail with an unhelpful "invalid target release: 21". Newer JDKs are fine.
+    if (JavaVersion.current() < JavaVersion.VERSION_21) {
+        throw new GradleException(
+            "forgetmenot compiles against Java 21, but Gradle is running on " +
+            "${JavaVersion.current()}. In Android Studio set Settings > Build, Execution, " +
+            "Deployment > Build Tools > Gradle > Gradle JDK to 21; on the command line point " +
+            "JAVA_HOME at a JDK 21. See SPEC.md section 8."
+        )
+    }
+
+    // Release signing reads android/keystore.properties (gitignored; SPEC.md section 8). A
+    // release signed with any other key installs as a different app, so a missing one is fatal.
+    def keystorePropertiesFile = rootProject.file("keystore.properties")
+    def keystoreProperties = new Properties()
+    def hasKeystore = keystorePropertiesFile.exists()
+    if (hasKeystore) {
+        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    }
+    // Checked on the task graph, not the command line, so `build` or a bare packageRelease counts too.
+    gradle.taskGraph.whenReady { graph ->
+        if (!hasKeystore && graph.allTasks.any { it.project == project && it.name.endsWith('Release') }) {
+            throw new GradleException(
+                "keystore.properties not found in android/ — can't build a signed release APK " +
+                "without it. See SPEC.md section 8 to generate your keystore once (this is a " +
+                "one-time step; the same keystore file signs every future rebuild). " +
+                "Run gradlew assembleDebug instead if you just want a debug-signed build to test on device."
+            )
+        }
+    }
+
+    signingConfigs {
+        // Shared debug key, when present (not in the public repository): debug APKs from any
+        // machine that has it install over each other. Without it, AGP's per-machine key signs.
+        debug {
+            if (rootProject.file("keystores/my-shared-debug.keystore").exists()) {
+                storeFile = rootProject.file("keystores/my-shared-debug.keystore"); storePassword = "android"
+                keyAlias = "androiddebugkey"; keyPassword = "android"
+            }
+        }
+        release {
+            if (hasKeystore) {
+                // rootProject.file, not file(): bare file() resolves against android/app/, while
+                // keystore.properties and the paths in it are relative to android/.
+                storeFile = rootProject.file(keystoreProperties['storeFile'])
+                storePassword = keystoreProperties['storePassword']
+                keyAlias = keystoreProperties['keyAlias']
+                keyPassword = keystoreProperties['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasKeystore) {
+                signingConfig = signingConfigs.release
+            }
+        }
+        debug {
+            signingConfig = signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    packaging {
+        resources {
+            excludes += ['META-INF/DEPENDENCIES', 'META-INF/LICENSE', 'META-INF/LICENSE.txt', 'META-INF/NOTICE', 'META-INF/NOTICE.txt']
+        }
+    }
+}
+
+// The committed palette screenshots are what verify mode compares against, so a changed golden
+// must re-run the tests rather than leave them up to date (or restored from the build cache).
+tasks.withType(Test).configureEach {
+    inputs.dir("src/test/screenshots").withPropertyName("roborazziGoldens")
+        .withPathSensitivity(PathSensitivity.RELATIVE).optional()
+    // spec/SpecCitationsTest reads SPEC.md and every file it cites, and spec/BuildHygieneTest
+    // scans the repository, so an edit anywhere in it has to re-run them.
+    inputs.files(fileTree("$rootDir/..") {
+        exclude '.git/**', '**/build/**', '**/.gradle/**', '**/.kotlin/**', '.idea/**', '.claude/worktrees/**', 'node_modules/**'
+    }).withPropertyName("repositoryFiles").withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_21
+    }
+}
+
+dependencies {
+    // Compose UI, versions from the BOM. Material 3 stock components; tokens arrive in P4.
+    implementation platform("androidx.compose:compose-bom:$composeBomVersion")
+    implementation "androidx.compose.ui:ui"
+    implementation "androidx.compose.material3:material3"
+    implementation "androidx.compose.ui:ui-tooling-preview"
+    debugImplementation "androidx.compose.ui:ui-tooling"
+
+    implementation "androidx.activity:activity-compose:$androidxActivityVersion"
+    implementation "androidx.navigation:navigation-compose:$navigationComposeVersion"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycleVersion"
+    implementation "androidx.lifecycle:lifecycle-runtime-compose:$lifecycleVersion"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxSerializationVersion"
+
+    // The API 31+ launch theme is Theme.SplashScreen (values-v31/styles.xml); the other themes
+    // extend platform Material, so AppCompat is gone.
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+
+    // Glance for the three home-screen widgets
+    implementation "androidx.glance:glance-appwidget:1.2.0"
+
+    // FileProvider (manifest) and ContextCompat
+    implementation "androidx.core:core-ktx:$androidxCoreVersion"
+
+    // DocumentFile, the Storage Access Framework root of the sync folder (P2)
+    implementation "androidx.documentfile:documentfile:1.1.0"
+
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2"
+
+    testImplementation "junit:junit:$junitVersion"
+
+    // Palette screenshots (ui/theme): Robolectric renders, Roborazzi records and compares.
+    // testDebugUnitTest runs them; recordRoborazziDebug rewrites the PNGs, verifyRoborazziDebug
+    // compares against them.
+    testImplementation "org.robolectric:robolectric:$robolectricVersion"
+    testImplementation "io.github.takahirom.roborazzi:roborazzi:$roborazziVersion"
+    testImplementation "io.github.takahirom.roborazzi:roborazzi-compose:$roborazziVersion"
+    testImplementation "io.github.takahirom.roborazzi:roborazzi-junit-rule:$roborazziVersion"
+    testImplementation "androidx.compose.ui:ui-test-junit4"
+    // Glance widget layouts (widget/): composes a widget's content and matches its nodes.
+    testImplementation "androidx.glance:glance-appwidget-testing:1.2.0"
+    debugImplementation "androidx.compose.ui:ui-test-manifest"
+}

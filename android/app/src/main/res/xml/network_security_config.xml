@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- forgetmenot has no INTERNET permission at all (see AndroidManifest.xml), so this
+     config has no live traffic to govern today. It's included anyway as an explicit,
+     auditable policy rather than relying purely on API 28+'s implicit default, and as
+     a safety net if a future dependency ever declares
+     INTERNET without anyone noticing — cleartext stays blocked regardless. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

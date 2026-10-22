@@ -1,0 +1,24 @@
+# Never commit signing material — losing or leaking this key means every future
+# install is treated as a different app (see android/app/build.gradle).
+android/keystore.properties
+*.keystore
+*.jks
+
+# The shared DEBUG key (android/keystores/my-shared-debug.keystore) is kept out of
+# this repository too; without it, debug builds use AGP's per-machine key
+# (SPEC.md section 8, Signing).
+#
+
+# Generated Gradle output and machine-local settings. Everything else under android/ is
+# hand-written and committed (SPEC.md section 8).
+android/.gradle/
+android/.kotlin/
+android/build/
+android/app/build/
+android/local.properties
+.idea/
+*.iml
+
+# Semgrep Guardian's OAuth session cache (an anonymous user id and an expiry), written by
+# the editor plugin, not project configuration. Same treatment as in the sibling repos.
+.semgrep/

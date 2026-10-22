@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Card background for all three widgets: white, tinted to the active skin's background in code
+  (WidgetTheme). Glance's cornerRadius() is a no-op below API 31 (minSdk is 30), so the
+  rounding lives in the drawable; cornerRadius() stays for child clipping.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#FFFFFFFF" />
+    <corners android:radius="16dp" />
+</shape>

@@ -1,0 +1,39 @@
+// Native Kotlin + Compose since the port from the web build; every file here is hand-written.
+
+buildscript {
+    ext.kotlin_version = '2.2.21'
+    // Read here and by app/build.gradle; buildscript runs before variables.gradle is applied.
+    ext.roborazziVersion = '1.76.0'
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // AGP 8.13.0 needs Gradle 8.13+, and the wrapper pins 8.14.3
+        // (developer.android.com/build/releases/about-agp).
+        classpath 'com.android.tools.build:gradle:8.13.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        // Compose compiler for the app UI and the Glance widgets; version-locked to Kotlin since 2.0.
+        classpath "org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin:$kotlin_version"
+        // kotlinx.serialization: type-safe navigation routes now, the sync-folder JSON from P2.
+        classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
+        // Roborazzi: the theme's palette screenshots, rendered on the JVM by Robolectric (P4).
+        classpath "io.github.takahirom.roborazzi:roborazzi-gradle-plugin:$roborazziVersion"
+    }
+}
+
+apply from: "variables.gradle"
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+// layout.buildDirectory, not the template's rootProject.buildDir (deprecated in Gradle 8.4,
+// removed in 9); it resolves to the same directory.
+task clean(type: Delete) {
+    delete rootProject.layout.buildDirectory
+}

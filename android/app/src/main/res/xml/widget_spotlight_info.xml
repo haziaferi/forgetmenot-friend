@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  initialLayout is what the launcher shows while Glance composes. Without it the host inflates
+  resource 0, throws Resources$NotFoundException and leaves the widget blank on every host
+  reload. glance_default_loading_layout ships with glance-appwidget for exactly this.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="68dp"
+    android:minResizeHeight="40dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="10800000"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:previewImage="@drawable/widget_preview_spotlight"
+    android:description="@string/widget_spotlight_label" />

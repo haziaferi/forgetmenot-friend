@@ -1,0 +1,42 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # app/build.gradle refuses anything below JDK 21 (SPEC.md section 8). The runner image
+      # ships the Android SDK (ANDROID_HOME), and the debug keystore is committed.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      # roborazzi.test.verify compares the ui/theme palette screenshots against the committed
+      # PNGs (1% tolerance, set in PaletteScreenshotTest) instead of only rendering them. The
+      # same run checks SPEC.md's citations (spec/SpecCitationsTest), so CI needs only Gradle.
+      - run: ./gradlew assembleDebug testDebugUnitTest -Proborazzi.test.verify=true
+        working-directory: android
+      # Only a release build runs R8 (minify, shrinkResources), so a broken keep rule or a
+      # serializer R8 strips shows up here and nowhere else. app/build.gradle refuses a release
+      # without keystore.properties, so the runner makes a throwaway key; the real one never
+      # leaves the owner's machine (SPEC.md section 8), and this APK is not kept.
+      - name: Release build (R8), signed with a throwaway key
+        working-directory: android
+        run: |
+          keytool -genkeypair -keystore ci-throwaway.jks -storepass ci-only -keypass ci-only \
+            -alias ci -keyalg RSA -keysize 2048 -validity 1 -dname "CN=forgetmenot CI"
+          printf 'storeFile=ci-throwaway.jks\nstorePassword=ci-only\nkeyAlias=ci\nkeyPassword=ci-only\n' > keystore.properties
+          ./gradlew assembleRelease
+      # The goldens were recorded on Windows. If Linux rendering differs past the tolerance,
+      # this artifact holds the runner's own renders: commit those to re-baseline.
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: roborazzi-diffs
+          path: android/app/build/outputs/roborazzi/

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Platform Material, no AppCompat: Compose draws everything, so these only set what shows
+         before the first frame and the framework chrome (selection handles, the system
+         dialogs). Colours are the default palette, Cyanotype light (ui/theme/ThemeTokens.kt);
+         the app's own mode, not the system's, picks light or dark, so there is no night
+         variant. Edge-to-edge (enableEdgeToEdge in MainActivity) makes both bars transparent. -->
+    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/windowBackground</item>
+        <item name="android:colorPrimary">@color/colorPrimary</item>
+        <item name="android:colorAccent">@color/colorPrimary</item>
+        <item name="android:colorBackground">@color/windowBackground</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar" parent="AppTheme" />
+
+    <!-- No splash below API 31: a plain alias. The splash theme is in values-v31/styles.xml. -->
+    <style name="AppTheme.NoActionBarLaunch" parent="AppTheme.NoActionBar" />
+</resources>

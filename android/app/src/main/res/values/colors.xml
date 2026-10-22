@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Cyanotype light, the palette a fresh install starts on (ui/theme/ThemeTokens.kt):
+         its bg behind the first frame and the splash, its primary on framework chrome. -->
+    <color name="windowBackground">#E9F1F7</color>
+    <color name="colorPrimary">#0A5188</color>
+    <color name="splashBackground">#E9F1F7</color>
+    <!-- Not ic_launcher_background: `cap add android` generates a resource with that name,
+         which would collide on every regeneration. Sampled from forgetmenot-icon.png; it
+         shows through the transparent parts of the adaptive icon's foreground layer. -->
+    <color name="fm_launcher_background">#B8D0FD</color>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">forgetmenot</string>
+
+    <string name="widget_spotlight_label">forgetmenot — Spotlight</string>
+    <string name="widget_topthree_label">forgetmenot — Top 3</string>
+    <string name="widget_random_label">forgetmenot — Thinking of</string>
+</resources>

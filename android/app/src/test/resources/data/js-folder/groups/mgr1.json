@@ -1,0 +1,1 @@
+{"id":"mgr1","name":"Book club","memberIds":["mfr1abc","mfr2xyz"],"events":[{"id":"e1","title":"Meet","dateISO":"2026-11-20","recurring":"monthly"}],"createdAt":1760000000000,"updatedAt":1792344327367}

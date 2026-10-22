@@ -1,0 +1,16 @@
+// SDK levels and dependency pins, read by app/build.gradle. One :app module since the
+// Compose port; the web build's library modules that also read this are gone.
+ext {
+    minSdkVersion = 30
+    compileSdkVersion = 36
+    targetSdkVersion = 36
+    androidxActivityVersion = '1.11.0'
+    androidxCoreVersion = '1.17.0'
+    coreSplashScreenVersion = '1.2.0'
+    composeBomVersion = '2025.09.00'
+    navigationComposeVersion = '2.9.4'
+    lifecycleVersion = '2.9.4'
+    kotlinxSerializationVersion = '1.9.0'
+    junitVersion = '4.13.2'
+    robolectricVersion = '4.17'
+}

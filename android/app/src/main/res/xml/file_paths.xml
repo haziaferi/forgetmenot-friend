@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backs the FileProvider declared in AndroidManifest.xml, used only by
+     writeShareFile() (integrations/ShareIntents.kt) to hand a generated file
+     — currently just an .ics calendar invite — to another app via
+     content://, without exposing anything else on the device. Only the
+     "shared" subfolder of the app's own cache dir is exposed, and nothing
+     else: no external storage, no root of the app's files, no full cache. -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="shared" path="shared/" />
+</paths>
