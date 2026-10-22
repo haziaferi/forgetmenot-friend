@@ -1,0 +1,49 @@
+name: codeql
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '17 4 * * 1'
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Kotlin can only be extracted while it compiles, so this one builds (manual mode).
+          - language: java-kotlin
+            build-mode: manual
+          - language: python
+            build-mode: none
+    steps:
+      - uses: actions/checkout@v4
+      # app/build.gradle refuses anything below JDK 21 (SPEC.md section 8).
+      - if: matrix.build-mode == 'manual'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - if: matrix.build-mode == 'manual'
+        uses: gradle/actions/setup-gradle@v4
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+      # Compiles the app's main and debug Kotlin; the tests are the test workflow's job. No
+      # daemons and no build cache, so every source file is compiled where CodeQL can see it.
+      - if: matrix.build-mode == 'manual'
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon --no-build-cache -Pkotlin.compiler.execution.strategy=in-process
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
