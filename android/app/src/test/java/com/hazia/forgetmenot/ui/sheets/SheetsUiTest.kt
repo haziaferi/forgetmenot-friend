@@ -288,6 +288,27 @@ class SheetsUiTest {
         assertEquals("Annie", r.getFriend("f1")!!.name)
     }
 
+    // A session that turned read-only after the scan (a failed folder pick, I6) cannot save the
+    // choice. It says so before asking, instead of "This entry changed since the conflict was found".
+    @Test fun aReadOnlySessionSaysWhyAConflictCannotBeResolved() {
+        env.plantFriendConflict("f1", "Ann", "Annie", contacts = 2)
+        runBlocking { env.session.runScan() }
+        env.store.blockWrites()
+        compose.setThemed {
+            val ask = rememberAskState()
+            SyncConflictsSheet(env.session, ask, onDismiss = {})
+            AskHost(ask)
+        }
+        compose.onNodeWithText("Keep the synced-in version").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Keep it").assertDoesNotExist()
+        assertEquals("Your sync folder couldn’t be read — restart the app, then try again", toastText())
+        assertEquals(1, env.session.pendingConflicts.value.size)
+        // Neither side was written or deleted.
+        assertTrue(env.fs.disk.getValue("friends/f1.json").contains("\"name\":\"Ann\""))
+        assertTrue(env.fs.disk.containsKey("friends/f1.sync-conflict-20261012-101500-ABC.json"))
+    }
+
     @Test fun anEmptyConflictListSaysSo() {
         compose.setThemed { SyncConflictsSheet(env.session, rememberAskState(), onDismiss = {}) }
         compose.onNodeWithText("No conflicts.").assertExists()

@@ -41,6 +41,9 @@ import kotlinx.serialization.json.longOrNull
 // Port of www/js/ui/conflicts.js: the sync-conflicts sheet. The banner on home and the row in
 // Settings read the same list, SyncSession.pendingConflicts.
 
+/** A resolve tapped in a read-only session (I6): the choice could not be saved. */
+private const val READ_ONLY_RESOLVE = "Your sync folder couldn’t be read — restart the app, then try again"
+
 private fun JsonObject.text(k: String) = (this[k] as? JsonPrimitive)?.takeIf { it.isString }?.content
 private fun JsonObject.count(k: String) = (this[k] as? JsonArray)?.size ?: 0
 
@@ -91,6 +94,9 @@ fun SyncConflictsSheet(session: SyncSession, ask: AskState, onDismiss: () -> Uni
                             .clickable(role = Role.Button, enabled = !resolving) {
                                 scope.launch {
                                     if (resolving) return@launch
+                                    // Read-only (I6): resolve() refuses, and its false reads as
+                                    // "changed since the scan", which would send the user round again.
+                                    if (session.store.writesBlocked) { Toaster.show(READ_ONLY_RESOLVE); return@launch }
                                     val name = item.canonical.text("name") ?: item.conflicting.text("name") ?: "this record"
                                     if (!ask.confirm("Keep this version?", "The other version of $name is discarded. This can’t be undone.", "Keep it")) return@launch
                                     resolving = true

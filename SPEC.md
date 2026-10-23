@@ -219,8 +219,9 @@ is hand-written (`.gitignore:12-18`). The only committed files a tool drew are i
 build output: the widget picker previews, redrawn by hand with `tools/widget-previews.py`
 (`tools/widget-previews.py:2-5`), and the Roborazzi goldens that verify mode compares against.
 
-**Native floor is API 30.** `android/app/build.gradle` sets `compileSdk = 36` and, in
-`defaultConfig`, `minSdk = 30` and `targetSdk = 36` (`android/app/build.gradle:11-16`).
+**Native floor is API 30.** `android/variables.gradle` sets `minSdkVersion = 30`,
+`compileSdkVersion = 36` and `targetSdkVersion = 36` (`android/variables.gradle:4-6`), which
+`android/app/build.gradle` reads (`android/app/build.gradle:11-16`).
 
 ### What it deliberately is not
 
@@ -232,7 +233,7 @@ they picked. Archiving hides rather than deletes; a question (`AskState`, `AskSh
 section 7) guards only what cannot be undone — deleting a friend for good
 (`ListSheets.kt:176`), deleting a group (`GroupSheets.kt:259-263`), replacing this device's data
 with a backup (`SettingsActions.kt:65`) and keeping one side of a conflict
-(`ConflictsSheet.kt:95`); and conflicting copies of a friend, tag or group are settled by edit
+(`ConflictsSheet.kt:101`); and conflicting copies of a friend, tag or group are settled by edit
 time or by the user, never dropped (index files are union-merged and avatar and settings
 conflict copies are dropped automatically — section 3). Archiving a friend
 (`archiveFriend()`, `DetailActions.kt:97-109`), deleting a tag and deleting a group event
@@ -786,11 +787,11 @@ re-pushes the widgets and the reminders, a group only the reminders, a tag neith
 `SyncSession.pendingConflicts` (`SyncSession.kt:47`) drives three surfaces: the home banner ("N
 sync conflicts found — tap to resolve", `HomeScreen.kt:295-297`), the Settings row
 (`SettingsScreen.kt:203-208`) and the resolution sheet, `SyncConflictsSheet()`
-(`ConflictsSheet.kt:68`). Each card offers "Keep this version" and "Keep the synced-in version",
-each labelled by `conflictSummary()` (`ConflictsSheet.kt:54`) with how long ago it was edited and
+(`ConflictsSheet.kt:71`). Each card offers "Keep this version" and "Keep the synced-in version",
+each labelled by `conflictSummary()` (`ConflictsSheet.kt:57`) with how long ago it was edited and
 what it holds (check-ins logged, members), so the two sides differ by content, not only by time.
 The version not kept is gone for good, so the choice is asked a second time, "Keep this version?",
-before anything is discarded (`ConflictsSheet.kt:95`).
+before anything is discarded (`ConflictsSheet.kt:101`).
 
 `Conflicts.resolve(item, keepConflicting)` (`Conflicts.kt:205`) does not trust the scan's snapshot.
 Before keeping the canonical side it re-reads the file and compares (`Conflicts.kt:208-209`); if it
@@ -799,13 +800,15 @@ discard that edit. It returns `false` without writing; `SyncSession.resolve()`
 (`SyncSession.kt:101-105`) then re-runs the scan, and the sheet toasts "This entry changed since the
 conflict was found — resolve it again to be safe". Otherwise the winner is written and hydrated,
 the conflict file deleted, and the per-kind rule applied (`Conflicts.kt:215-218`); the session
-drops the item from the pending list. A read-only session resolves nothing (`Conflicts.kt:206`).
+drops the item from the pending list. A read-only session resolves nothing (`Conflicts.kt:206`),
+so the sheet checks for one before asking and toasts "Your sync folder couldn’t be read — restart the
+app, then try again" instead (`ConflictsSheet.kt:99`).
 
-The sheet's click handler (`ConflictsSheet.kt:91-106`) awaits that result: the rows are disabled
+The sheet's click handler (`ConflictsSheet.kt:94-112`) awaits that result: the rows are disabled
 and taps ignored while a resolution is in flight, it toasts "Kept one version, discarded the other"
 only when the resolution actually happened, and toasts "Couldn't save that choice — try again"
 rather than swallowing a failure. The sheet closes itself when the pending list empties, whether by
-the user's last choice or by a rescan (`ConflictsSheet.kt:121-125`).
+the user's last choice or by a rescan (`ConflictsSheet.kt:127-131`).
 
 ### When a scan runs
 
@@ -1960,8 +1963,8 @@ Read from the build files, these are the versions that have to line up:
   because the error otherwise is `invalid target release: 21` from the compiler, which names
   neither the requirement nor this file, and AGP 8.13 only enforces 17. It is a floor: a newer
   JDK is fine.
-- **Android SDK platform 36.** `compileSdk = 36`, `minSdk = 30`, `targetSdk = 36`
-  (`app/build.gradle:11-16`). Gradle finds the SDK through `ANDROID_HOME` or
+- **Android SDK platform 36.** Compile and target SDK 36, minimum 30, set once in
+  `android/variables.gradle` (`android/variables.gradle:4-6`) and read by `app/build.gradle:11-16`. Gradle finds the SDK through `ANDROID_HOME` or
   `android/local.properties` (`sdk.dir=...`, backslashes doubled), which is gitignored (by both
   the root `.gitignore` and `android/.gitignore`) and recreated per machine. Android Studio
   writes it on first open; on the command line, `ANDROID_HOME` is enough.
@@ -1975,7 +1978,7 @@ version-locked to Kotlin (`android/build.gradle:17-18`), the kotlinx.serializati
 at the Kotlin version (`android/build.gradle:19-20`), and the Roborazzi Gradle plugin
 (`android/build.gradle:21-22`) at the version set once in `buildscript`
 (`android/build.gradle:6`), so the plugin and the test libraries cannot drift apart. The other
-library versions are in `android/variables.gradle`. `gradle-wrapper.properties` is committed and
+library versions and the SDK levels are in `android/variables.gradle`. `gradle-wrapper.properties` is committed and
 hand-owned like every other file here; nothing but the build itself checks that the wrapper is
 new enough for the AGP, and an AGP bump that outgrows it fails at configuration with AGP's own
 message.
@@ -3390,7 +3393,7 @@ above: true on their date, and superseded by later entries rather than rewritten
 > - Widgets write the record directly; there is no reach-out queue to drain (sections 2, 5, 6).
 > - A read-only session also lifts when a folder with data is picked and loads; a failed
 >   adoption reverts to the previous grant; the conflict scan and resolve refuse while read-only
->   (sections 2, 3). Open question: resolving there shows the "This entry changed" toast.
+>   (sections 2, 3); a resolve tapped there says the folder couldn’t be read.
 > - The manifest declares four permissions; WRITE_CONTACTS is gone (section 6).
 > - Back closes only the topmost sheet; Escape and the hand-drawn focus ring have no native
 >   counterpart; deleting a group still asks through a stand-in `AlertDialog` (section 7).

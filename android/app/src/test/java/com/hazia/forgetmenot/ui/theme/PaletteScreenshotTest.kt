@@ -40,7 +40,8 @@ import org.robolectric.annotation.GraphicsMode
 // One PNG per palette (5 skins x Light/OLED), in app/src/test/screenshots/theme/. Each draws
 // every token role on the stock M3 component that carries it, at the three size tiers, so a
 // retuned palette or a component reading the wrong role shows up as a diff. CI runs
-// verifyRoborazziDebug; the 1% threshold absorbs font antialiasing between machines.
+// testDebugUnitTest -Proborazzi.test.verify=true; the 1% threshold absorbs font antialiasing
+// between machines.
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35], qualifiers = "w360dp-h720dp-xhdpi")
