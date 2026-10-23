@@ -8,12 +8,12 @@ apply plugin: 'io.github.takahirom.roborazzi'
 
 android {
     namespace = "com.hazia.forgetmenot"
-    compileSdk = 36
+    compileSdk = rootProject.ext.compileSdkVersion
 
     defaultConfig {
         applicationId = "com.hazia.forgetmenot"
-        minSdk = 30
-        targetSdk = 36
+        minSdk = rootProject.ext.minSdkVersion
+        targetSdk = rootProject.ext.targetSdkVersion
         versionCode = 1
         versionName = "1.0.0"
     }
