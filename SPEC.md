@@ -39,8 +39,8 @@ is coming up, and who you spoke to recently. It is a native Kotlin and Jetpack C
 Android application id is `com.hazia.forgetmenot` (`android/app/build.gradle:14`).
 
 forgetmenot was a Capacitor WebView app (JavaScript UI, Kotlin plugins) until phase P7 of its port.
-That web build is not part of this repository; Kotlin comments of the form "Port of www/js/…"
-name files of it.
+Kotlin comments of the form "Port of www/js/…" name files of that web build, which is not in the
+public repository; the private development repository keeps it at commit 93b9db7.
 
 ### The core model
 
@@ -2145,14 +2145,14 @@ it on one line in total, the sentence that says where the app came from
 
 Two keystores, with opposite rules.
 
-**The shared debug keystore is not in this repository.** When
-`android/keystores/my-shared-debug.keystore` exists, it is the debug `signingConfig`
-(`app/build.gradle:60-68`), password `android`, alias `androiddebugkey`, and the debug build type
-uses it (`app/build.gradle:90-92`), so debug APKs from any machine that has it install over each
-other. Without it, AGP signs debug builds with the per-machine `~/.android/debug.keystore`, and
+**The shared debug keystore is optional.** The private development repository commits it; the
+public one does not. When `android/keystores/my-shared-debug.keystore` exists, it is the debug
+`signingConfig` (`app/build.gradle:60-68`), password `android`, alias `androiddebugkey`, and the
+debug build type uses it (`app/build.gradle:90-92`), so debug APKs from any machine that has it
+install over each other. Without it, AGP signs debug builds with the per-machine `~/.android/debug.keystore`, and
 `adb install -r` of a build from another machine fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`.
-The root `.gitignore` ignores `*.keystore` and `*.jks` and re-includes nothing. A debug key must
-never sign a release.
+The root `.gitignore` ignores `*.keystore` and `*.jks`; the private repository's re-includes the
+shared debug key. A debug key must never sign a release.
 
 **The release keystore is never committed.** `android/keystore.properties` is ignored by the root
 `.gitignore`, so a clean checkout has none, and a release build stops immediately: once the task
@@ -2297,7 +2297,8 @@ are static images, drawn once, and a placed widget switches to the app's skin at
 
 - **No network, so no server-side anything** — no cloud backup, account sync, crash reporting,
   analytics, remote fonts or update checks, ever. Backup is a file in the user's own folder.
-- **Nothing is saved until a folder is picked.** Until then every write fails harmlessly, the
+- **Nothing is saved until a folder is picked.** Until then every write fails harmlessly and
+  quietly (no error is logged for it, `CachedStore.kt:164`), the
   starter tags are seeded afresh on each launch (`seedIfEmpty()`, `Records.kt:213-220`), and backup
   export refuses (`Backup.kt:65`). The upside: uninstalling the app does not delete the data,
   because it was never in app-private storage.

@@ -139,7 +139,8 @@ class CachedStore(
      * Writes one key's file. A friend's data: avatar goes to the sibling avatars/<id>.b64 and the
      * record keeps the marker "file:avatars/<id>.b64" (base64 inside a record syncs and diffs
      * badly); a null avatar deletes the sidecar, which would otherwise keep syncing forever.
-     * Failures are logged, not surfaced.
+     * Failures are logged, not surfaced; with no folder picked yet a write is expected to fail
+     * (SPEC §9 "Nothing is saved until a folder is picked"), so that one is not logged.
      */
     suspend fun persistKey(key: String, value: JsonElement) {
         if (writesBlocked) return
@@ -160,7 +161,7 @@ class CachedStore(
                 }
             }
             fsWrite(StoragePaths.keyToPath(key), toWrite.toJsonText())
-        } catch (e: CancellationException) { throw e } catch (e: Exception) { logError("persist failed for $key", e) }
+        } catch (e: CancellationException) { throw e } catch (e: Exception) { if (!e.isNoFolder()) logError("persist failed for $key", e) }
     }
 
     suspend fun deleteKey(key: String) {
@@ -168,8 +169,10 @@ class CachedStore(
         try {
             fsDelete(StoragePaths.keyToPath(key))
             if (key.startsWith(Keys.FRIEND_PREFIX)) fsDelete(StoragePaths.avatarPath(key.removePrefix(Keys.FRIEND_PREFIX)))
-        } catch (e: CancellationException) { throw e } catch (e: Exception) { logError("delete failed for $key", e) }
+        } catch (e: CancellationException) { throw e } catch (e: Exception) { if (!e.isNoFolder()) logError("delete failed for $key", e) }
     }
+
+    private fun Exception.isNoFolder() = this is FolderException && code == FolderError.NO_FOLDER_SELECTED
 
     // ── reading ──────────────────────────────────────────────────────────────
 

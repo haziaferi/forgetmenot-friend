@@ -143,6 +143,8 @@ class WidgetDataPathTest {
 
     @Test fun theTickWritesNothingInAReadOnlySession() = runBlocking {
         records.saveFriend(Friend(id = "ana", name = "Ana"))
+        // The save is queued; snapshotted before it lands, the folder "changed" under a slow runner.
+        store.flushWrites()
         val disk = fs.disk.toMap()
         val widgetData = prefs(WIDGET_PREFS_KEY)
         assertEquals(TickOutcome.ReadOnly, WidgetTick.log(CompletableDeferred(StartResult(readOnly = true)), records, "ana"))
